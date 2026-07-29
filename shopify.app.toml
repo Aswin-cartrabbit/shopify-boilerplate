@@ -1,0 +1,21 @@
+# Learn more: https://shopify.dev/docs/apps/tools/cli/configuration
+
+name = "my-app"
+client_id = "b4bbc2806fc87cba55914b37f22ba7fc"
+application_url = "https://introduction-concord-rolled-vernon.trycloudflare.com"
+embedded = true
+
+[access_scopes]
+scopes = "read_products"
+
+[auth]
+redirect_urls = [
+  "https://introduction-concord-rolled-vernon.trycloudflare.com/api/auth/callback",
+]
+
+[webhooks]
+api_version = "2026-07"
+
+  [[webhooks.subscriptions]]
+  topics = ["app/uninstalled"]
+  uri = "/api/webhooks"

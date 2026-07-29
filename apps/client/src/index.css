@@ -1,0 +1,13 @@
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+.auth-loading {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+}

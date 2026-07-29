@@ -1,0 +1,30 @@
+# Local development: Postgres only. Run the app on your host with `pnpm dev`.
+#
+# Start:  docker compose -f docker-compose.local.yml up -d
+# Stop:   docker compose -f docker-compose.local.yml down
+# Logs:   docker compose -f docker-compose.local.yml logs -f db
+#
+# DATABASE_URL (matches apps/server/.env.example):
+# postgresql://postgres:postgres@localhost:5432/app?schema=public
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: shopify-boilerplate-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_local_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_local_data:

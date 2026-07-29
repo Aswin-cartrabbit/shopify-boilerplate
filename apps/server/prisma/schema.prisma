@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Shopify store (one row per installed shop)
+// ---------------------------------------------------------------------------
+model Shop {
+  id             String     @id @default(cuid())
+  shopDomain     String     @unique @map("shop_domain") // e.g. my-store.myshopify.com
+  shopifyShopId  BigInt?    @unique @map("shopify_shop_id")
+  name           String?
+  email          String?
+  contactEmail   String?    @map("contact_email")
+  shopOwner      String?    @map("shop_owner")
+  currency       String?    @db.VarChar(3)
+  timezone       String?
+  countryCode    String?    @map("country_code") @db.VarChar(2)
+  primaryLocale  String?    @map("primary_locale")
+  planName       String?    @map("plan_name")
+  isShopifyPlus  Boolean    @default(false) @map("is_shopify_plus")
+  status         ShopStatus @default(INSTALLED)
+  installedAt    DateTime   @default(now()) @map("installed_at")
+  uninstalledAt  DateTime?  @map("uninstalled_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  sessions ShopSession[]
+  settings ShopSetting[]
+
+  @@index([status])
+  @@map("shops")
+}
+
+// ---------------------------------------------------------------------------
+// OAuth sessions / tokens (offline + online per shop)
+// Separate from Shop so tokens can rotate without touching store metadata.
+// ---------------------------------------------------------------------------
+model ShopSession {
+  id                    String        @id @default(cuid())
+  shopId                String        @map("shop_id")
+  sessionType           SessionType   @map("session_type")
+  state                 SessionState  @default(ACTIVE)
+  accessToken           String        @map("access_token")
+  refreshToken          String?       @map("refresh_token")
+  accessTokenExpiresAt  DateTime?     @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime?     @map("refresh_token_expires_at")
+  scope                 String?
+  shopifyUserId         BigInt?       @map("shopify_user_id") // set for ONLINE sessions
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, sessionType, shopifyUserId])
+  @@index([shopId, sessionType, state])
+  @@index([accessTokenExpiresAt])
+  @@map("shop_sessions")
+}
+
+// ---------------------------------------------------------------------------
+// Per-shop app configuration (key/value, easy to extend)
+// ---------------------------------------------------------------------------
+model ShopSetting {
+  id        String   @id @default(cuid())
+  shopId    String   @map("shop_id")
+  key       String
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, key])
+  @@map("shop_settings")
+}
+
+enum ShopStatus {
+  INSTALLED
+  UNINSTALLED
+  SUSPENDED
+}
+
+enum SessionType {
+  OFFLINE // long-lived token for background jobs / webhooks
+  ONLINE  // user-scoped token for embedded admin UI
+}
+
+enum SessionState {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
